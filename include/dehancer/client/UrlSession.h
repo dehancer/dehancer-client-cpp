@@ -10,8 +10,11 @@
 #include <rxcpp/rx.hpp>
 #include <curl/curl.h>
 #include <string>
+#include <vector>
 #include <memory>
 #include <map>
+#include <functional>
+#include <fstream>
 
 namespace dehancer::network::client {
 
@@ -25,10 +28,6 @@ namespace dehancer::network::client {
          * message headers
          * */
         std::map<std::string, std::string> headers;
-        /**
-         * message body
-         */
-        std::string                        body;
     };
 
     /**
@@ -37,9 +36,9 @@ namespace dehancer::network::client {
      * client::HttpRequest request = {
      *     {
      *             .headers = {},
-     *             .body = "request body, json-rpc for example"
      *     },
      *     .method = client::HttpRequest::Method::post
+     *     .body = "request body, json-rpc for example"
      * };
      *
      * */
@@ -54,11 +53,15 @@ namespace dehancer::network::client {
         /**
          * The method of the request
          */
-        Method                             method;
+        Method                             method = Method::get;
+        /**
+         * request body
+         */
+        std::string                        body = "";
     };
 
     /**
-     * Http response container
+     * Http response protocol
      * */
     struct HttpResponse:public HttpMessage {
         /**
@@ -83,12 +86,66 @@ namespace dehancer::network::client {
         /**
          * Received content length if server set Content-Length header
          */
-        std::size_t                       content_length = -1;
+        std::size_t                       content_length = 0;
+
+        /**
+         * Already received content length
+         */
+        std::size_t                       received_length = 0;
 
         /**
          * Progression stage in percent: [0,100]
          */
         short                             progress = 0; // 0-100
+        /**
+         * response message body
+         */
+
+        /**
+         * Append partial data must be implemented in certain class
+         * @param chunk - part of recieved data
+         */
+        virtual void append(const std::vector<std::uint8_t>& chunk) = 0;
+
+        /**
+         * Write completed data to buffer
+         * @param buffer - emplace buffer
+         */
+        virtual void write(std::vector<std::uint8_t> &buffer) = 0 ;
+
+        /**
+         * Write data to string
+         * @param buffer
+         */
+        virtual void write(std::string &buffer);
+
+        virtual ~HttpResponse();
+    };
+
+    /**
+     * Http response message keeping in memory
+     */
+    struct HttpResponseMessage: HttpResponse{
+
+        virtual void append(const std::vector<std::uint8_t>& chunk) override ;
+        virtual void write(std::vector<std::uint8_t> &buffer) override ;
+
+    private:
+        std::vector<std::uint8_t> body_;
+    };
+
+    namespace detail {
+        class Session;
+    }
+
+    struct HttpResponseFile: HttpResponse{
+        HttpResponseFile(const std::string_view& file);
+        virtual void append(const std::vector<std::uint8_t>& chunk) override ;
+        virtual void write(std::vector<std::uint8_t> &buffer) override ;
+
+    private:
+        std::string path_;
+        std::unique_ptr<std::ofstream> outFile_;
     };
 
     namespace detail {
@@ -104,6 +161,8 @@ namespace dehancer::network::client {
 
     public:
 
+        using PathHandler = std::function<std::string_view(const UrlSession& session)>;
+
         /**
          * Common session exceptions
          */
@@ -114,10 +173,12 @@ namespace dehancer::network::client {
             explicit exception(CURLcode code, std::shared_ptr<HttpResponse> response = nullptr);
             explicit exception(const std::string& error, std::shared_ptr<HttpResponse> response);
             CURLcode get_code() const { return code_; }
+            long get_http_status() const { return status_; }
             std::shared_ptr<HttpResponse> get_response() const { return response_;}
 
         private:
             CURLcode code_;
+            long status_;
             std::shared_ptr<HttpResponse> response_;
         };
 
@@ -142,6 +203,19 @@ namespace dehancer::network::client {
          * @return observable response object
          */
         rx::observable<std::shared_ptr<HttpResponse>> request(const HttpRequest& request) const ;
+
+        /**
+         *
+         * Download data from url
+         *
+         * @param handler - handler download callback helper
+         * @param request -  http request body
+         * @return observable response object
+         */
+        rx::observable<std::shared_ptr<HttpResponse>> download(
+                const PathHandler& handler,
+                const HttpRequest& request={}
+        ) const ;
 
     private:
         std::shared_ptr<detail::Session> session_;

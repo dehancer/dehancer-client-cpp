@@ -19,44 +19,36 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
   std::cout << std::endl;
 
-  dehancer::json body =
-          R"({"jsonrpc":"2.0",
-              "method": "get-film-profile-list",
-              "params":{"cuid": "", "signature": "",
-              "all": true, "id":""},
-              "id":"1"})"_json;
+  auto session = client::UrlSession("http://127.0.0.1:8042/v1/download/film/agfa-scala-200x/revision:1.mlut", 10);
 
-  auto session = client::UrlSession("http://localhost:8042/v1/api", 10);
-
-  client::HttpRequest request = {
-          {
-                  .headers = {},
-          },
-          .body = body.dump(),
-          .method = client::HttpRequest::Method::post
+  auto filepath = [](const client::UrlSession& session){
+      return std::string("/tmp/download_content.xmp");
   };
+
 
   for (int i = 0; i < count; ++i) {
     session
 
-            .request(request)
+            .download(filepath)
 
             .subscribe_on(rxcpp::observe_on_event_loop())
 
             .on_error_resume_next([&](std::exception_ptr ep) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-                return session .request(request);
-
+                return session .download(filepath);
             })
 
-            .retry(2)
+            .retry(10)
 
             .subscribe(
 
                     [](const std::shared_ptr<client::HttpResponse> response){
 
                         std::cout << " Response: ["<< std::this_thread::get_id() <<"]"
-                                  << " state: " << response->state << ", progress: " <<  response->progress << std::endl;
+                                  << " state: " << response->state
+                                  << ", progress: " <<  response->progress
+                                  << " / " <<  response->received_length << "(bytes)"
+                                  << std::endl;
 
                         if (response->state == client::HttpResponse::State::completed) {
 
@@ -65,11 +57,10 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                           response->write(data);
 
                           std::cout << " Body["<<response.use_count() << "]: "
-                                    << data.size()
-                                    << std::endl
-                                    << "----" << std::endl
+                                    << response->content_length << " / " << data.length()
+                                    << "\n -- "
                                     << data
-                                    << "----"
+                                    << " --"
                                     << std::endl;
                         }
 
@@ -82,26 +73,23 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                         }
 
                         catch (const client::UrlSession::exception& ex) {
+                          std::vector<std::uint8_t > data;
 
-                          std::string data;
-
-                          if (ex.get_response())
+                          if (ex.get_response()) {
                             ex.get_response()->write(data);
+                          }
 
                           std::cout << " Error["<<ex.get_http_status()<<"]: "
-                                    <<  ex.what() << ": "
-                                    << (
-                                            !data.empty()
-                                            ? data
-                                            : session.get_url()
-                                    )
+                                    <<  ex.what() << ": " << ex.get_http_status() << " => "
+                                    << (ex.get_response()
+                                    ? std::string(data.begin(),data.end())
+                                    : session.get_url())
                                     << std::endl;
                         }
 
                         catch (const std::exception& ex) {
                           std::cout << " Error: " <<  ex.what() << std::endl;
                         }
-
 
                         if (--ref_count == 0) semaphore.signal();
 
