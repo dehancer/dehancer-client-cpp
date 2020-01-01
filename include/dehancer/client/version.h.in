@@ -1,0 +1,15 @@
+//
+// Created by denn nevera on 2019-12-30.
+//
+
+#ifndef DEHANCER_CLIENT_CPP_VERSION_H
+#define DEHANCER_CLIENT_CPP_VERSION_H
+
+namespace dehancer::client {
+    inline static unsigned int version()
+    {
+        return @PROJECT_VERSION@;
+    }
+}
+
+#endif //DEHANCER_CLIENT_CPP_VERSION_H

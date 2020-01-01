@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: dehancer-client-cpp
+Description: Dehancer Network Services layer SDK
+Version: @PROJECT_VERSION@
+URL: https://github.com/dehancer/dehancer-client-cpp
+Requires.private: @requires_private@
+Libs: -L${libdir} -l dehancer_client_cpp
+Libs.private: @libs_private@
+CFlags: -I${includedir}
