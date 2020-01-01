@@ -13,6 +13,8 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <functional>
+#include <fstream>
 
 namespace dehancer::network::client {
 
@@ -51,11 +53,11 @@ namespace dehancer::network::client {
         /**
          * The method of the request
          */
-        Method                             method;
+        Method                             method = Method::get;
         /**
          * request body
          */
-        std::string                        body;
+        std::string                        body = "";
     };
 
     /**
@@ -120,6 +122,11 @@ namespace dehancer::network::client {
         HttpResponseFile(const std::string_view& file);
         virtual void append(const std::vector<std::uint8_t>& chunk) override ;
         virtual const std::vector<std::uint8_t>& data() const override ;
+
+    private:
+        std::string path_;
+        std::unique_ptr<std::ofstream> outFile_;
+        std::vector<std::uint8_t> body_;
     };
 
     namespace detail {
@@ -134,6 +141,8 @@ namespace dehancer::network::client {
     class UrlSession {
 
     public:
+
+        using PathHandler = std::function<std::string_view(const UrlSession& session)>;
 
         /**
          * Common session exceptions
@@ -175,10 +184,18 @@ namespace dehancer::network::client {
         rx::observable<std::shared_ptr<HttpResponse>> request(const HttpRequest& request) const ;
 
         /**
+         *
          * Download data from url
+         *
+         * @param handler - handler download callback helper
+         * @param request -  http request body
          * @return observable response object
          */
-        rx::observable<std::shared_ptr<HttpResponse>> download() const ;
+
+        rx::observable<std::shared_ptr<HttpResponse>> download(
+                const PathHandler& handler,
+                const HttpRequest& request={}
+        ) const ;
 
     private:
         std::shared_ptr<detail::Session> session_;

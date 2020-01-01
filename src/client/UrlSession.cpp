@@ -15,6 +15,8 @@ namespace dehancer::network::client {
         //
         static const std::regex __http_header_regex_(R"((.+?):[\t ]*(.+))");
 
+        static std::string url_encode(std::string s);
+
         struct Response {
             std::size_t received_size = 0;
             rx::subjects::subject<std::vector<std::uint8_t>> body_progress;
@@ -52,7 +54,7 @@ namespace dehancer::network::client {
             ~Session() {};
 
             Session(const std::string& url, std::time_t timeout):
-                    url(url),timeout(timeout)
+                    url(url_encode(url)),timeout(timeout)
             {};
 
             const std::string url;
@@ -125,17 +127,29 @@ namespace dehancer::network::client {
 
                           curl_response
                                   .body_progress
-                                  .get_observable().subscribe(
-                                          [&response, &subscriber](const std::vector<std::uint8_t> &chunk) {
+                                  .get_observable()
+                                  .subscribe(
+                                          [&response, &curl_response, &subscriber]
+                                                  (const std::vector<std::uint8_t> &chunk) {
 
-                                              response->append(chunk);
+                                              try {
 
-                                              if (response->content_length>0) {
-                                                float p = float(response->data().size())/float(response->content_length)*100.0;
-                                                response->progress = static_cast<short>(p);
+                                                response->append(chunk);
+
+                                                if (response->content_length > 0) {
+                                                  float p = float(curl_response.received_size) /
+                                                            float(response->content_length) * 100.0;
+                                                  response->progress = static_cast<short>(p);
+                                                }
+                                                subscriber.on_next(response);
                                               }
-                                              subscriber.on_next(response);
+
+                                              catch (const UrlSession::exception &e) {
+                                                rx::observable<>::error<std::shared_ptr<HttpResponse>>(e).subscribe(subscriber);
+                                              }
+
                                           }
+
                                   );
 
 
@@ -186,7 +200,6 @@ namespace dehancer::network::client {
                       }
               );
             }
-
         };
 
     }
@@ -198,6 +211,32 @@ namespace dehancer::network::client {
     }
 
     const std::vector<std::uint8_t>& HttpResponseMessage::data() const {
+      return body_;
+    }
+
+    HttpResponseFile::HttpResponseFile(const std::string_view &file):
+    path_(file),outFile_(new std::ofstream) {
+      outFile_->open(path_,  std::fstream::out | std::ofstream::binary);
+    }
+
+    void HttpResponseFile::append(const std::vector<std::uint8_t> &chunk) {
+
+      if (outFile_ == nullptr) {
+        throw UrlSession::exception("File could not be allocated...");
+      }
+
+      if (!outFile_->is_open()) {
+        std::string error("File ");
+        error += path_;
+        error += " could not be openned...";
+        throw UrlSession::exception(error.c_str());
+      }
+
+      std::copy(chunk.begin(), chunk.end(), std::ostreambuf_iterator<char>(*outFile_));
+
+    }
+
+    const std::vector<std::uint8_t>& HttpResponseFile::data() const {
       return body_;
     }
 
@@ -218,5 +257,67 @@ namespace dehancer::network::client {
     rx::observable<std::shared_ptr<HttpResponse>> UrlSession::request(const HttpRequest &request) const {
       auto response = std::make_shared<HttpResponseMessage>();
       return session_->request(request, std::move(response));
+    }
+
+    rxcpp::observable<std::shared_ptr<HttpResponse>> UrlSession::download(
+            const PathHandler &handler,
+            const HttpRequest& request) const {
+
+      try {
+
+        std::string_view filepath = handler(*this);
+        auto response = std::make_shared<HttpResponseFile>(filepath);
+
+        return session_->request(request, std::move(response));
+
+      }
+
+      catch (const std::exception& e) {
+        return rx::observable<>::create<std::shared_ptr<HttpResponse>>(
+                [this, &e](rx::subscriber<std::shared_ptr<HttpResponse>>& subscriber) {
+                    rx::observable<>::error<std::shared_ptr<HttpResponse>>(e).subscribe(subscriber);
+                }
+        );
+      }
+    }
+
+
+    static void hexchar(unsigned char c, unsigned char &hex1, unsigned char &hex2)
+    {
+      hex1 = c / 16;
+      hex2 = c % 16;
+      hex1 += hex1 <= 9 ? '0' : 'a' - 10;
+      hex2 += hex2 <= 9 ? '0' : 'a' - 10;
+    }
+
+    namespace detail {
+
+        static std::string url_encode(std::string s) {
+          const char *str = s.c_str();
+          std::vector<char> v(s.size());
+          v.clear();
+          for (size_t i = 0, l = s.size(); i < l; i++) {
+            char c = str[i];
+            if ((c >= '0' && c <= '9') ||
+                (c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z') ||
+                c == '-' || c == '_' || c == '.' || c == '!' || c == '~' ||
+                c == '*' || c == '\'' || c == '(' || c == ')' || c == '/' || c == ':' ||
+                c == '?' || c == '&' || c == '='
+                    ) {
+              v.push_back(c);
+            } else if (c == ' ') {
+              v.push_back('+');
+            } else {
+              v.push_back('%');
+              unsigned char d1, d2;
+              hexchar(c, d1, d2);
+              v.push_back(d1);
+              v.push_back(d2);
+            }
+          }
+
+          return std::string(v.cbegin(), v.cend());
+        }
     }
 }
