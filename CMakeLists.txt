@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 set(PROJECT_LIB dehancer_client_cpp)
-    project(${PROJECT_LIB} VERSION 0.1.1)
+    project(${PROJECT_LIB} VERSION 0.1.2)
 
 set(CMAKE_CXX_STANDARD 17)
 
