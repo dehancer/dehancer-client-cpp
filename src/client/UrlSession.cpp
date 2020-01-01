@@ -206,12 +206,18 @@ namespace dehancer::network::client {
 
     HttpResponse::~HttpResponse() {}
 
+    void HttpResponse::write(std::string &buffer) {
+      std::vector<std::uint8_t> data;
+      this->write(data);
+      buffer.assign(data.begin(), data.end());
+    }
+
     void HttpResponseMessage::append(const std::vector<std::uint8_t> &chunk) {
       body_.insert(body_.end(), chunk.begin(), chunk.end());
     }
 
-    const std::vector<std::uint8_t>& HttpResponseMessage::data() const {
-      return body_;
+    void HttpResponseMessage::write(std::vector<std::uint8_t> &buffer) {
+      buffer = body_;
     }
 
     HttpResponseFile::HttpResponseFile(const std::string_view &file):
@@ -236,8 +242,22 @@ namespace dehancer::network::client {
 
     }
 
-    const std::vector<std::uint8_t>& HttpResponseFile::data() const {
-      return body_;
+    void HttpResponseFile::write(std::vector<std::uint8_t> &buffer) {
+
+      buffer.clear();
+
+      std::ifstream inFile;
+      inFile.open(path_.c_str(),  std::fstream::in);
+
+      if (!inFile.is_open())
+        return ;
+
+      inFile.seekg(0, std::ios::end);
+      buffer.reserve(inFile.tellg());
+      inFile.seekg(0, std::ios::beg);
+
+      buffer.assign((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
+
     }
 
     UrlSession::exception::exception(CURLcode code, std::shared_ptr<HttpResponse> response):

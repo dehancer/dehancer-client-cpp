@@ -11,7 +11,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
   namespace client = dehancer::network::client;
 
-  int count = 100;
+  int count = 1;
 
   std::atomic_uint ref_count = count;
 
@@ -59,12 +59,17 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                                   << " state: " << response->state << ", progress: " <<  response->progress << std::endl;
 
                         if (response->state == client::HttpResponse::State::completed) {
+
+                          std::string data;
+
+                          response->write(data);
+
                           std::cout << " Body["<<response.use_count() << "]: "
-                                    << response->data().size()
-                                    //<< std::endl
-                                    //<< "----" << std::endl
-                                    //<< std::string(response->data().begin(),response->data().end())
-                                    //<< "----"
+                                    << data.size()
+                                    << std::endl
+                                    << "----" << std::endl
+                                    << data
+                                    << "----"
                                     << std::endl;
                         }
 
@@ -77,11 +82,19 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                         }
 
                         catch (const client::UrlSession::exception& ex) {
+
+                          std::string data;
+
+                          if (ex.get_response())
+                            ex.get_response()->write(data);
+
                           std::cout << " Error: "
                                     <<  ex.what() << ": "
-                                    << (ex.get_response()
-                                    ? std::string(ex.get_response()->data().begin(),ex.get_response()->data().end())
-                                    : session.get_url())
+                                    << (
+                                            !data.empty()
+                                            ? data
+                                            : session.get_url()
+                                    )
                                     << std::endl;
                         }
 

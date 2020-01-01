@@ -97,7 +97,8 @@ namespace dehancer::network::client {
          */
 
         virtual void append(const std::vector<std::uint8_t>& chunk) = 0;
-        virtual const std::vector<std::uint8_t>& data() const = 0 ;
+        virtual void write(std::vector<std::uint8_t> &buffer) = 0 ;
+        virtual void write(std::string &buffer);
 
         virtual ~HttpResponse();
     };
@@ -108,7 +109,7 @@ namespace dehancer::network::client {
     struct HttpResponseMessage: HttpResponse{
 
         virtual void append(const std::vector<std::uint8_t>& chunk) override ;
-        virtual const std::vector<std::uint8_t>& data() const override ;
+        virtual void write(std::vector<std::uint8_t> &buffer) override ;
 
     private:
         std::vector<std::uint8_t> body_;
@@ -121,12 +122,11 @@ namespace dehancer::network::client {
     struct HttpResponseFile: HttpResponse{
         HttpResponseFile(const std::string_view& file);
         virtual void append(const std::vector<std::uint8_t>& chunk) override ;
-        virtual const std::vector<std::uint8_t>& data() const override ;
+        virtual void write(std::vector<std::uint8_t> &buffer) override ;
 
     private:
         std::string path_;
         std::unique_ptr<std::ofstream> outFile_;
-        std::vector<std::uint8_t> body_;
     };
 
     namespace detail {

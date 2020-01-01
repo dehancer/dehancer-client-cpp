@@ -56,8 +56,16 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                                   << " state: " << response->state << ", progress: " <<  response->progress << std::endl;
 
                         if (response->state == client::HttpResponse::State::completed) {
+
+                          std::string data;
+
+                          response->write(data);
+
                           std::cout << " Body["<<response.use_count() << "]: "
-                                    << response->data().size()
+                                    << response->content_length << " / " << data.length()
+                                    << "\n -- "
+                                    << data
+                                    << " --"
                                     << std::endl;
                         }
 
@@ -70,10 +78,16 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                         }
 
                         catch (const client::UrlSession::exception& ex) {
+                          std::vector<std::uint8_t > data;
+
+                          if (ex.get_response()) {
+                            ex.get_response()->write(data);
+                          }
+
                           std::cout << " Error: "
                                     <<  ex.what() << ": "
                                     << (ex.get_response()
-                                    ? std::string(ex.get_response()->data().begin(),ex.get_response()->data().end())
+                                    ? std::string(data.begin(),data.end())
                                     : session.get_url())
                                     << std::endl;
                         }
