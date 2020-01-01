@@ -3,7 +3,6 @@
 //
 
 #include "dehancer/client/UrlSession.hpp"
-#include <curl/curl.h>
 #include <algorithm>
 #include <regex>
 
