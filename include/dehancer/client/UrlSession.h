@@ -10,6 +10,7 @@
 #include <rxcpp/rx.hpp>
 #include <curl/curl.h>
 #include <string>
+#include <vector>
 #include <memory>
 #include <map>
 
@@ -25,10 +26,6 @@ namespace dehancer::network::client {
          * message headers
          * */
         std::map<std::string, std::string> headers;
-        /**
-         * message body
-         */
-        std::string                        body;
     };
 
     /**
@@ -37,9 +34,9 @@ namespace dehancer::network::client {
      * client::HttpRequest request = {
      *     {
      *             .headers = {},
-     *             .body = "request body, json-rpc for example"
      *     },
      *     .method = client::HttpRequest::Method::post
+     *     .body = "request body, json-rpc for example"
      * };
      *
      * */
@@ -55,6 +52,10 @@ namespace dehancer::network::client {
          * The method of the request
          */
         Method                             method;
+        /**
+         * request body
+         */
+        std::string                        body;
     };
 
     /**
@@ -89,6 +90,36 @@ namespace dehancer::network::client {
          * Progression stage in percent: [0,100]
          */
         short                             progress = 0; // 0-100
+        /**
+         * response message body
+         */
+
+        virtual void append(const std::vector<std::uint8_t>& chunk) = 0;
+        virtual const std::vector<std::uint8_t>& data() const = 0 ;
+
+        virtual ~HttpResponse();
+    };
+
+    /**
+     * Http response message keeping in memory
+     */
+    struct HttpResponseMessage: HttpResponse{
+
+        virtual void append(const std::vector<std::uint8_t>& chunk) override ;
+        virtual const std::vector<std::uint8_t>& data() const override ;
+
+    private:
+        std::vector<std::uint8_t> body_;
+    };
+
+    namespace detail {
+        class Session;
+    }
+
+    struct HttpResponseFile: HttpResponse{
+        HttpResponseFile(const std::string_view& file);
+        virtual void append(const std::vector<std::uint8_t>& chunk) override ;
+        virtual const std::vector<std::uint8_t>& data() const override ;
     };
 
     namespace detail {
@@ -142,6 +173,12 @@ namespace dehancer::network::client {
          * @return observable response object
          */
         rx::observable<std::shared_ptr<HttpResponse>> request(const HttpRequest& request) const ;
+
+        /**
+         * Download data from url
+         * @return observable response object
+         */
+        rx::observable<std::shared_ptr<HttpResponse>> download() const ;
 
     private:
         std::shared_ptr<detail::Session> session_;

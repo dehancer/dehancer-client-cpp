@@ -11,6 +11,10 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
   namespace client = dehancer::network::client;
 
+  int count = 100;
+
+  std::atomic_uint ref_count = count;
+
   dehancer::Semaphore semaphore;
 
   std::cout << std::endl;
@@ -27,64 +31,79 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
   client::HttpRequest request = {
           {
                   .headers = {},
-                  .body = body.dump()
           },
+          .body = body.dump(),
           .method = client::HttpRequest::Method::post
   };
 
-  session
+  for (int i = 0; i < count; ++i) {
+    session
 
-          .request(request)
+            .request(request)
 
-          .on_error_resume_next([&](std::exception_ptr ep) {
-              std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-              return session .request(request);
+            .subscribe_on(rxcpp::observe_on_event_loop())
 
-          })
+            .on_error_resume_next([&](std::exception_ptr ep) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+                return session .request(request);
 
-          .retry(2)
+            })
 
-          .subscribe(
+            .retry(2)
 
-                  [](const std::shared_ptr<client::HttpResponse> response){
+            .subscribe(
 
-                      std::cout << " Response: ["<< std::this_thread::get_id() <<"]"
-                                << " state: " << response->state << ", progress: " <<  response->progress << std::endl;
+                    [](const std::shared_ptr<client::HttpResponse> response){
 
-                      if (response->state == client::HttpResponse::State::completed) {
-                        std::cout << " Body: " << response->body << response->body.size() << std::endl;
-                      }
+                        std::cout << " Response: ["<< std::this_thread::get_id() <<"]"
+                                  << " state: " << response->state << ", progress: " <<  response->progress << std::endl;
 
-                  },
+                        if (response->state == client::HttpResponse::State::completed) {
+                          std::cout << " Body["<<response.use_count() << "]: "
+                                    << response->data().size()
+                                    //<< std::endl
+                                    //<< "----" << std::endl
+                                    //<< std::string(response->data().begin(),response->data().end())
+                                    //<< "----"
+                                    << std::endl;
+                        }
 
-                  [&semaphore,&session](std::exception_ptr ep){
+                    },
 
-                      try {
-                        std::rethrow_exception(ep);
-                      }
+                    [&semaphore,&session,&ref_count](std::exception_ptr ep){
 
-                      catch (const client::UrlSession::exception& ex) {
-                        std::cout << " Error: "
-                        <<  ex.what() << ": " << (ex.get_response() ? ex.get_response()->body : session.get_url())
-                        << std::endl;
-                      }
+                        try {
+                          std::rethrow_exception(ep);
+                        }
 
-                      catch (const std::exception& ex) {
-                        std::cout << " Error: " <<  ex.what() << std::endl;
-                      }
+                        catch (const client::UrlSession::exception& ex) {
+                          std::cout << " Error: "
+                                    <<  ex.what() << ": "
+                                    << (ex.get_response()
+                                    ? std::string(ex.get_response()->data().begin(),ex.get_response()->data().end())
+                                    : session.get_url())
+                                    << std::endl;
+                        }
 
-                      semaphore.signal();
-                  },
+                        catch (const std::exception& ex) {
+                          std::cout << " Error: " <<  ex.what() << std::endl;
+                        }
 
-                  [&semaphore](){
-                      std::cout << " On complete ["<< std::this_thread::get_id() <<"]"
-                                << std::endl << std::endl;
-                      semaphore.signal();
-                  }
-          );
+
+                        if (--ref_count == 0) semaphore.signal();
+
+                    },
+
+                    [&semaphore,&ref_count](){
+                        std::cout << " On complete ["<< std::this_thread::get_id() <<"]"
+                                  << std::endl << std::endl;
+
+                        if (--ref_count == 0) semaphore.signal();
+                    }
+            );
+  }
 
   std::cout << " ....["<< std::this_thread::get_id() <<"]" << std::endl;
   semaphore.wait();
   std::cout << " Exited." << std::endl;
-
 }
