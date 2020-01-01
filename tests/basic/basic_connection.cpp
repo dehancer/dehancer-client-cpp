@@ -88,7 +88,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                           if (ex.get_response())
                             ex.get_response()->write(data);
 
-                          std::cout << " Error: "
+                          std::cout << " Error["<<ex.get_http_status()<<"]: "
                                     <<  ex.what() << ": "
                                     << (
                                             !data.empty()

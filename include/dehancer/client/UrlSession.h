@@ -61,7 +61,7 @@ namespace dehancer::network::client {
     };
 
     /**
-     * Http response container
+     * Http response protocol
      * */
     struct HttpResponse:public HttpMessage {
         /**
@@ -86,7 +86,12 @@ namespace dehancer::network::client {
         /**
          * Received content length if server set Content-Length header
          */
-        std::size_t                       content_length = -1;
+        std::size_t                       content_length = 0;
+
+        /**
+         * Already received content length
+         */
+        std::size_t                       received_length = 0;
 
         /**
          * Progression stage in percent: [0,100]
@@ -96,8 +101,22 @@ namespace dehancer::network::client {
          * response message body
          */
 
+        /**
+         * Append partial data must be implemented in certain class
+         * @param chunk - part of recieved data
+         */
         virtual void append(const std::vector<std::uint8_t>& chunk) = 0;
+
+        /**
+         * Write completed data to buffer
+         * @param buffer - emplace buffer
+         */
         virtual void write(std::vector<std::uint8_t> &buffer) = 0 ;
+
+        /**
+         * Write data to string
+         * @param buffer
+         */
         virtual void write(std::string &buffer);
 
         virtual ~HttpResponse();
@@ -154,10 +173,12 @@ namespace dehancer::network::client {
             explicit exception(CURLcode code, std::shared_ptr<HttpResponse> response = nullptr);
             explicit exception(const std::string& error, std::shared_ptr<HttpResponse> response);
             CURLcode get_code() const { return code_; }
+            long get_http_status() const { return status_; }
             std::shared_ptr<HttpResponse> get_response() const { return response_;}
 
         private:
             CURLcode code_;
+            long status_;
             std::shared_ptr<HttpResponse> response_;
         };
 
@@ -191,7 +212,6 @@ namespace dehancer::network::client {
          * @param request -  http request body
          * @return observable response object
          */
-
         rx::observable<std::shared_ptr<HttpResponse>> download(
                 const PathHandler& handler,
                 const HttpRequest& request={}

@@ -141,6 +141,9 @@ namespace dehancer::network::client {
                                                             float(response->content_length) * 100.0;
                                                   response->progress = static_cast<short>(p);
                                                 }
+
+                                                response->received_length = curl_response.received_size;
+
                                                 subscriber.on_next(response);
                                               }
 
@@ -161,6 +164,9 @@ namespace dehancer::network::client {
                             curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long) request.body.size());
                             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.body.data());
                           }
+                          else {
+                            curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
+                          }
 
                           curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
 
@@ -170,6 +176,9 @@ namespace dehancer::network::client {
                           curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, detail::header_handler);
                           curl_easy_setopt(curl, CURLOPT_HEADERDATA, &curl_response);
 
+                          std::string error_buffer; error_buffer.resize(CURL_ERROR_SIZE);
+                          curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_buffer.data());
+
                           CURLcode res = curl_easy_perform(curl);
 
                           curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response->http_status);
@@ -178,12 +187,17 @@ namespace dehancer::network::client {
                           /// Check for errors
                           ///
                           if (res != CURLE_OK) {
-                            rx::observable<>::error<std::shared_ptr<HttpResponse>>(UrlSession::exception(res)).subscribe(subscriber);
+                            rx::observable<>::error<std::shared_ptr<HttpResponse>>(UrlSession::exception(res, response)).subscribe(subscriber);
                           }
 
                           else if (response->http_status>=400) {
+
+                            std::string message = (error_buffer[0] == '\0')
+                                    ? std::string("Http response error...")
+                                    : error_buffer;
+
                             rx::observable<>
-                            ::error<std::shared_ptr<HttpResponse>>(UrlSession::exception("Http response error...", response))
+                            ::error<std::shared_ptr<HttpResponse>>(UrlSession::exception(message, response))
                                     .subscribe(subscriber);
                           }
 
@@ -261,10 +275,16 @@ namespace dehancer::network::client {
     }
 
     UrlSession::exception::exception(CURLcode code, std::shared_ptr<HttpResponse> response):
-            std::runtime_error(curl_easy_strerror(code)), code_(code), response_(response) {}
+            std::runtime_error(curl_easy_strerror(code)),
+            code_(code),
+            status_(response ? response->http_status : -1),
+            response_(response) {}
 
     UrlSession::exception::exception(const std::string& error, std::shared_ptr<HttpResponse> response):
-            std::runtime_error(error), code_(CURLE_RECV_ERROR), response_(response) {}
+            std::runtime_error(error),
+            code_(CURLE_RECV_ERROR),
+            status_(response ? response->http_status : -1),
+            response_(response) {}
 
     UrlSession::UrlSession(const std::string &url, std::time_t timeout):
             session_(new detail::Session(url,timeout)){}

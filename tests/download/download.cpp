@@ -11,7 +11,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
   namespace client = dehancer::network::client;
 
-  int count = 10;
+  int count = 1;
 
   std::atomic_uint ref_count = count;
 
@@ -19,41 +19,36 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
   std::cout << std::endl;
 
-  auto session = client::UrlSession("http://localhost:8042/v1/api", 10);
+  auto session = client::UrlSession("http://127.0.0.1:8042/v1/download/film/agfa-scala-200x/revision:1.mlut", 10);
 
   auto filepath = [](const client::UrlSession& session){
-      return std::string("/tmp/download_content.json");
+      return std::string("/tmp/download_content.xmp");
   };
 
-
-  dehancer::json body =
-          R"({"jsonrpc":"2.0",
-              "method": "get-film-profile-list",
-              "params":{"cuid": "", "signature": "",
-              "all": true, "id":""},
-              "id":"1"})"_json;
-
-  client::HttpRequest request = {
-          {
-                  .headers = {},
-          },
-          .body = body.dump(),
-          .method = client::HttpRequest::Method::post
-  };
 
   for (int i = 0; i < count; ++i) {
     session
 
-            .download(filepath,request)
+            .download(filepath)
 
             .subscribe_on(rxcpp::observe_on_event_loop())
+
+            .on_error_resume_next([&](std::exception_ptr ep) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+                return session .download(filepath);
+            })
+
+            .retry(10)
 
             .subscribe(
 
                     [](const std::shared_ptr<client::HttpResponse> response){
 
                         std::cout << " Response: ["<< std::this_thread::get_id() <<"]"
-                                  << " state: " << response->state << ", progress: " <<  response->progress << std::endl;
+                                  << " state: " << response->state
+                                  << ", progress: " <<  response->progress
+                                  << " / " <<  response->received_length << "(bytes)"
+                                  << std::endl;
 
                         if (response->state == client::HttpResponse::State::completed) {
 
@@ -84,8 +79,8 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                             ex.get_response()->write(data);
                           }
 
-                          std::cout << " Error: "
-                                    <<  ex.what() << ": "
+                          std::cout << " Error["<<ex.get_http_status()<<"]: "
+                                    <<  ex.what() << ": " << ex.get_http_status() << " => "
                                     << (ex.get_response()
                                     ? std::string(data.begin(),data.end())
                                     : session.get_url())
@@ -95,7 +90,6 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                         catch (const std::exception& ex) {
                           std::cout << " Error: " <<  ex.what() << std::endl;
                         }
-
 
                         if (--ref_count == 0) semaphore.signal();
 
