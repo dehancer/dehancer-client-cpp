@@ -3,9 +3,7 @@
 //
 
 #include "gtest/gtest.h"
-#include <curl/curl.h>
 #include <rxcpp/rx.hpp>
-#include <dehancer/Common.h>
 #include <string>
 
 

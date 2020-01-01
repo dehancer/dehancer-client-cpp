@@ -4,13 +4,7 @@
 
 
 #include "gtest/gtest.h"
-#include <curl/curl.h>
-#include <rxcpp/rx.hpp>
-#include <rxcpp/rx.hpp>
-#include <dehancer/Common.h>
-#include <dehancer/client/UrlSession.hpp>
-#include <dehancer/Semaphore.h>
-#include <string>
+#include "dehancer/client/UrlSession.hpp"
 
 
 TEST(JSON_RPC_CONNECT, UrlSessionTest) {

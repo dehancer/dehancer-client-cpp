@@ -4,11 +4,14 @@
 
 #pragma once
 
+#include "dehancer/Common.h"
+#include "dehancer/Semaphore.h"
+
 #include <rxcpp/rx.hpp>
-#include <string>
-#include <dehancer/Common.h>
 #include <curl/curl.h>
-#include <optional>
+#include <string>
+#include <memory>
+#include <map>
 
 namespace dehancer::network::client {
 
