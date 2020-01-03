@@ -1,5 +1,17 @@
 set(TEST_LIBRARIES)
 
+if (APPLE)
+
+    include(${CMAKE_SOURCE_DIR}/lib/macos/Cmake.inc)
+
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+
+    # Linux & FreeBSD
+    set_target_properties(${CURRENT_TARGET_NAME} PROPERTIES LINK_FLAGS "-Wl,-fvisibility=hidden,--version-script=${OFX_SUPPORT_HEADER_DIR}/linuxSymbols")
+    set_target_properties(${CURRENT_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/../../Libraries")
+
+endif ()
+
 if (GTEST_FOUND)
     include_directories(${GTEST_INCLUDE_DIRS})
     set(TEST_LIBRARIES ${GTEST_BOTH_LIBRARIES})

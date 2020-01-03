@@ -4,12 +4,12 @@
 
 
 #include "gtest/gtest.h"
-#include "dehancer/client/UrlSession.h"
+#include "dehancer/Client.h"
 
 
 TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
-  namespace client = dehancer::network::client;
+  namespace net = dehancer::network;
 
   int count = 1;
 
@@ -26,14 +26,14 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
               "all": true, "id":""},
               "id":"1"})"_json;
 
-  auto session = client::UrlSession("http://localhost:8042/v1/api", 10);
+  auto session = net::client::UrlSession("http://localhost:8042/v1/api", 10);
 
-  client::HttpRequest request = {
+  net::HttpRequest request = {
           {
                   .headers = {},
           },
           .body = body.dump(),
-          .method = client::HttpRequest::Method::post
+          .method = net::HttpRequest::Method::post
   };
 
   for (int i = 0; i < count; ++i) {
@@ -53,12 +53,12 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
             .subscribe(
 
-                    [](const std::shared_ptr<client::HttpResponse> response){
+                    [](const std::shared_ptr<net::HttpResponse> response){
 
                         std::cout << " Response: ["<< std::this_thread::get_id() <<"]"
                                   << " state: " << response->state << ", progress: " <<  response->progress << std::endl;
 
-                        if (response->state == client::HttpResponse::State::completed) {
+                        if (response->state == net::HttpResponse::State::completed) {
 
                           std::string data;
 
@@ -81,7 +81,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                           std::rethrow_exception(ep);
                         }
 
-                        catch (const client::UrlSession::exception& ex) {
+                        catch (const net::exception& ex) {
 
                           std::string data;
 

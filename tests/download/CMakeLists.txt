@@ -6,5 +6,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.env)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/.env ${CMAKE_CURRENT_BINARY_DIR}/.env COPYONLY)
 endif()
 
-set (TEST client-download-test)
+set (TEST download-test)
 include(../CMakeCommon.in)

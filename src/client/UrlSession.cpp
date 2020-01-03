@@ -147,7 +147,7 @@ namespace dehancer::network::client {
                                                 subscriber.on_next(response);
                                               }
 
-                                              catch (const UrlSession::exception &e) {
+                                              catch (const exception &e) {
                                                 rx::observable<>::error<std::shared_ptr<HttpResponse>>(e).subscribe(subscriber);
                                               }
 
@@ -187,7 +187,7 @@ namespace dehancer::network::client {
                           /// Check for errors
                           ///
                           if (res != CURLE_OK) {
-                            rx::observable<>::error<std::shared_ptr<HttpResponse>>(UrlSession::exception(res, response)).subscribe(subscriber);
+                            rx::observable<>::error<std::shared_ptr<HttpResponse>>(exception(res, response)).subscribe(subscriber);
                           }
 
                           else if (response->http_status>=400) {
@@ -197,7 +197,7 @@ namespace dehancer::network::client {
                                     : error_buffer;
 
                             rx::observable<>
-                            ::error<std::shared_ptr<HttpResponse>>(UrlSession::exception(message, response))
+                            ::error<std::shared_ptr<HttpResponse>>(exception(message, response))
                                     .subscribe(subscriber);
                           }
 
@@ -218,77 +218,8 @@ namespace dehancer::network::client {
 
     }
 
-    HttpResponse::~HttpResponse() {}
-
-    void HttpResponse::write(std::string &buffer) {
-      std::vector<std::uint8_t> data;
-      this->write(data);
-      buffer.assign(data.begin(), data.end());
-    }
-
-    void HttpResponseMessage::append(const std::vector<std::uint8_t> &chunk) {
-      body_.insert(body_.end(), chunk.begin(), chunk.end());
-    }
-
-    void HttpResponseMessage::write(std::vector<std::uint8_t> &buffer) {
-      buffer = body_;
-    }
-
-    HttpResponseFile::HttpResponseFile(const std::string_view &file):
-    path_(file),outFile_(new std::ofstream) {
-      outFile_->open(path_,  std::fstream::out | std::ofstream::binary);
-    }
-
-    void HttpResponseFile::append(const std::vector<std::uint8_t> &chunk) {
-
-      if (outFile_ == nullptr) {
-        throw UrlSession::exception("File could not be allocated...");
-      }
-
-      if (!outFile_->is_open()) {
-        std::string error("File ");
-        error += path_;
-        error += " could not be openned...";
-        throw UrlSession::exception(error.c_str());
-      }
-
-      std::copy(chunk.begin(), chunk.end(), std::ostreambuf_iterator<char>(*outFile_));
-
-    }
-
-    void HttpResponseFile::write(std::vector<std::uint8_t> &buffer) {
-
-      buffer.clear();
-
-      std::ifstream inFile;
-      inFile.open(path_.c_str(),  std::fstream::in);
-
-      if (!inFile.is_open())
-        return ;
-
-      inFile.seekg(0, std::ios::end);
-      buffer.reserve(inFile.tellg());
-      inFile.seekg(0, std::ios::beg);
-
-      buffer.assign((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
-
-    }
-
-    UrlSession::exception::exception(CURLcode code, std::shared_ptr<HttpResponse> response):
-            std::runtime_error(curl_easy_strerror(code)),
-            code_(code),
-            status_(response ? response->http_status : -1),
-            response_(response) {}
-
-    UrlSession::exception::exception(const std::string& error, std::shared_ptr<HttpResponse> response):
-            std::runtime_error(error),
-            code_(CURLE_RECV_ERROR),
-            status_(response ? response->http_status : -1),
-            response_(response) {}
-
     UrlSession::UrlSession(const std::string &url, std::time_t timeout):
             session_(new detail::Session(url,timeout)){}
-
 
     const std::string& UrlSession::get_url() const {
       return session_->url;

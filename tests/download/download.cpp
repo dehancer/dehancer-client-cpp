@@ -4,11 +4,12 @@
 
 
 #include "gtest/gtest.h"
-#include "dehancer/client/UrlSession.h"
+#include "dehancer/Client.h"
 
 
 TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
+  namespace net = dehancer::network;
   namespace client = dehancer::network::client;
 
   int count = 1;
@@ -42,7 +43,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
             .subscribe(
 
-                    [](const std::shared_ptr<client::HttpResponse> response){
+                    [](const std::shared_ptr<net::HttpResponse> response){
 
                         std::cout << " Response: ["<< std::this_thread::get_id() <<"]"
                                   << " state: " << response->state
@@ -50,7 +51,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                                   << " / " <<  response->received_length << "(bytes)"
                                   << std::endl;
 
-                        if (response->state == client::HttpResponse::State::completed) {
+                        if (response->state == net::HttpResponse::State::completed) {
 
                           std::string data;
 
@@ -72,7 +73,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                           std::rethrow_exception(ep);
                         }
 
-                        catch (const client::UrlSession::exception& ex) {
+                        catch (const net::exception& ex) {
                           std::vector<std::uint8_t > data;
 
                           if (ex.get_response()) {

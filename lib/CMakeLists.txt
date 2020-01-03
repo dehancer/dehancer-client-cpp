@@ -2,6 +2,18 @@ include(CMakePackageConfigHelpers)
 
 set(CMAKE_INSTALL_PREFIX /usr/local/${PROJECT_LIB})
 
+if (APPLE)
+
+    include(macos/Cmake.inc)
+
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    # Linux & FreeBSD
+    set_target_properties(${CURRENT_TARGET_NAME} PROPERTIES LINK_FLAGS "-Wl,-fvisibility=hidden,--version-script=${OFX_SUPPORT_HEADER_DIR}/linuxSymbols")
+    set_target_properties(${CURRENT_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/../../Libraries")
+
+endif ()
+
+
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ../include
@@ -10,21 +22,33 @@ include_directories(
 )
 
 FILE(GLOB PUBLIC_INCLUDE_FILES
-        ${CMAKE_SOURCE_DIR}/include/dehancer/*.hpp
+        ${CMAKE_SOURCE_DIR}/include/dehancer/*.h
 
         )
 
 FILE(GLOB PUBLIC_CLIENT_INCLUDE_FILES
-        ${CMAKE_SOURCE_DIR}/include/dehancer/client/*.hpp
+        ${CMAKE_SOURCE_DIR}/include/dehancer/client/*.h
         )
 
 FILE(GLOB INCLUDE_FILES
         ${PUBLIC_INCLUDE_FILES}
         )
 
+set(PLATFORM_SOURCES)
+
+if (APPLE)
+    FILE(GLOB PLATFORM_SOURCES
+            ../src/client/platform/*.mm
+            ../src/client/platform/*.cpp
+            ../src/client/platform/macos/*.mm
+            ../src/client/platform/macos/*.cpp
+            )
+endif()
+
 FILE(GLOB SOURCES
         ../src/*.cpp
         ../src/client/*.cpp
+        ${PLATFORM_SOURCES}
         )
 
 add_library(
@@ -63,7 +87,6 @@ configure_package_config_file(
         "${project_config}"
         INSTALL_DESTINATION "${config_install_dir}"
 )
-
 
 install(TARGETS ${PROJECT_LIB}   DESTINATION lib)
 install(FILES   ${PUBLIC_INCLUDE_FILES} DESTINATION include/dehancer)
