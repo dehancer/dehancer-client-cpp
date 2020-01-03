@@ -40,6 +40,10 @@ namespace dehancer::network {
              */
             UrlSession(const std::string &url, std::time_t timeout = 60);
 
+            UrlSession() = delete;
+            UrlSession(UrlSession&&) = delete;
+            UrlSession(const UrlSession&) = delete;
+
             /**
              * Get current session url
              * @return url string

@@ -36,6 +36,19 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
           .method = net::HttpRequest::Method::post
   };
 
+  auto progress_thread = rxcpp::observe_on_one_worker(rxcpp::schedulers::make_new_thread());
+  //rxcpp::observe_on_new_thread();
+
+  auto progress = rxcpp::subjects::subject<int>();
+
+  progress
+          .get_observable()
+          .observe_on(progress_thread)
+          .subscribe([](int value) {
+              std::cout << " ....["<< std::this_thread::get_id() <<"] progress: " << value << std::endl;
+          });
+
+
   for (int i = 0; i < count; ++i) {
     session
 
@@ -53,7 +66,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
             .subscribe(
 
-                    [](const std::shared_ptr<net::HttpResponse> response){
+                    [progress](const std::shared_ptr<net::HttpResponse> response){
 
                         std::cout << " Response: ["<< std::this_thread::get_id() <<"]"
                                   << " state: " << response->state << ", progress: " <<  response->progress << std::endl;
@@ -71,6 +84,9 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                                     << data
                                     << "----"
                                     << std::endl;
+                        }
+                        else if (response->state == net::HttpResponse::State::in_progress ) {
+                          progress.get_subscriber().on_next(response->progress);
                         }
 
                     },
@@ -104,7 +120,6 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
 
                         if (--ref_count == 0) semaphore.signal();
-
                     },
 
                     [&semaphore,&ref_count](){
@@ -115,6 +130,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
                     }
             );
   }
+
 
   std::cout << " ....["<< std::this_thread::get_id() <<"]" << std::endl;
   semaphore.wait();

@@ -38,10 +38,19 @@ set(COMMON_LIBRARIES  ${ZLIB_LIBRARIES}; ${CURL_LIBRARIES};)
 file (WRITE "${VERSION_FILE}" "${PROJECT_NAME} ${PROJECT_VERSION}")
 configure_file(include/dehancer/client/version.h.in ${CMAKE_BINARY_DIR}/generated/version.h)
 
+
+#
+# Options
+#
+
+if(EXISTS ${CMAKE_SOURCE_DIR}/.key_file.txt)
+    configure_file(${CMAKE_SOURCE_DIR}/.key_file.txt ${CMAKE_CURRENT_BINARY_DIR}/generated/key_file.h COPYONLY)
+endif()
+
+
 #
 # Rx
 #
-
 ExternalProject_Add(rxcpp
         GIT_REPOSITORY https://github.com/ReactiveX/RxCpp
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
@@ -153,6 +162,7 @@ include_directories(
         ${CURL_INCLUDE_DIR}
         ${CMAKE_BINARY_DIR}/external/include
         ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
 link_directories(

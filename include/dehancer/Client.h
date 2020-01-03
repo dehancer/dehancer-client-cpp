@@ -6,3 +6,4 @@
 
 #include "client/UrlSession.h"
 #include "client/UserDefaults.h"
+#include "client/Rpc.h"

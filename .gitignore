@@ -1,5 +1,13 @@
 # Prerequisites
 *.d
+.env
+.key_file.txt
+.authority_pk.txt
+.authority_pvk.txt
+key_file.h
+authority_pvk.h
+authority_pk.h
+*.png.sign
 
 # Compiled Object files
 *.slo

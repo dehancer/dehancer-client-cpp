@@ -48,6 +48,8 @@ endif()
 FILE(GLOB SOURCES
         ../src/*.cpp
         ../src/client/*.cpp
+        ../src/client/film/*.cpp
+        ../src/client/camera/*.cpp
         ${PLATFORM_SOURCES}
         )
 
