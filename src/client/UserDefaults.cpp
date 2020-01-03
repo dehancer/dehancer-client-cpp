@@ -47,8 +47,19 @@ namespace dehancer::platform {
         user->cuid_.second = some_data->at("__PVK__");
 
       }
-      
+
       return std::shared_ptr<User>(user);
     }
 
+    User::User(const std::string &container_id):
+    container_id_(container_id)
+    {}
+
+    const std::string& User::get_container_id() {
+      return container_id_;
+    }
+
+    const std::pair<std::string,std::string>& User::get_cuid() {
+      return cuid_;
+    }
 }

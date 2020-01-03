@@ -19,14 +19,15 @@ namespace dehancer::platform {
     static dehancer::expected<dehancer::json,Error> read_pref(const std::string& path, const std::string& dir);
 
     UserMacOs::UserMacOs(const std::string& container_id):
-            container_id_(container_id),
+            User(container_id),
+            //container_id_(container_id),
             user_id_([NSUserName() UTF8String]),
             user_name_([NSFullUserName() UTF8String]),
             storage_dir_([NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true)[0] UTF8String]),
             key_chain_(container_id)
     {
       storage_dir_.append("/");
-      storage_dir_.append(container_id_);
+      storage_dir_.append(get_container_id());
       preference_file_path_ = storage_dir_;
       preference_file_path_.append("/");
       preference_file_path_.append("preferences.json");

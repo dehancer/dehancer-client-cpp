@@ -15,12 +15,10 @@ namespace dehancer::platform {
 
     public:
 
+        using dehancer::platform::User::User;
+
         explicit UserMacOs(const std::string& container_id);
 
-        UserMacOs(UserMacOs&&) = default;
-        UserMacOs(const UserMacOs&) = default;
-
-        const std::string& get_container_id() const override { return container_id_;};
         const std::string& get_id() const override ;
         const std::string& get_name() const override ;
         const std::string& get_storage_dir() const override ;
@@ -33,7 +31,6 @@ namespace dehancer::platform {
         const Error set_secure(const dehancer::json& value, const std::string& key) override;
 
     private:
-        std::string container_id_;
         std::string user_id_;
         std::string user_name_;
         std::string storage_dir_;

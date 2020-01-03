@@ -20,15 +20,22 @@ namespace dehancer::platform {
      */
     class User {
 
+    protected:
+        explicit User(const std::string& container_id);
+
     public:
 
         static std::shared_ptr<User> Defaults(const std::string& container_id);
+
+        User() = delete;
+        User(User&&) = delete;
+        User(const User&) = delete;
 
         /**
          * Get the current user application container identifier
          * @return user container id string
          */
-        virtual const std::string &get_container_id() const = 0;
+        virtual const std::string &get_container_id();
 
         /**
          * Get the user OS identifier
@@ -46,7 +53,7 @@ namespace dehancer::platform {
          * Get crypto pair as a global unique user id
          * @return ed25519 decoded strings pair
          */
-        virtual const std::pair<std::string,std::string>& get_cuid() const { return cuid_; };
+        virtual const std::pair<std::string,std::string>& get_cuid();
 
         /**
          * Get the user storage directory
@@ -91,9 +98,10 @@ namespace dehancer::platform {
          */
         virtual const Error set_secure(const dehancer::json &value, const std::string &key) = 0;
 
-        virtual ~User() {};
+        virtual ~User() = default;
 
     private:
+        std::string container_id_;
         std::pair<std::string,std::string> cuid_;
     };
 }
