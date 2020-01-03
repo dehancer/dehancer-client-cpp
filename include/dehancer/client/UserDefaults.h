@@ -43,6 +43,12 @@ namespace dehancer::platform {
         virtual const std::string &get_name() const = 0;
 
         /**
+         * Get crypto pair as a global unique user id
+         * @return ed25519 decoded strings pair
+         */
+        virtual const std::pair<std::string,std::string>& get_cuid() const { return cuid_; };
+
+        /**
          * Get the user storage directory
          * @return get user directory path string
          */
@@ -86,5 +92,8 @@ namespace dehancer::platform {
         virtual const Error set_secure(const dehancer::json &value, const std::string &key) = 0;
 
         virtual ~User() {};
+
+    private:
+        std::pair<std::string,std::string> cuid_;
     };
 }

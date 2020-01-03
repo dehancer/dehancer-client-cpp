@@ -64,27 +64,58 @@ if (NOT GTEST_FOUND)
     set(COMMON_DEPENDECIES googletest)
 endif ()
 
-ExternalProject_Add(ed25519cpplib
-        GIT_REPOSITORY https://github.com/dnevera/ed25519cpp
-        CMAKE_ARGS
-        -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
-        -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-        -DBUILD_TESTING=OFF
-        INSTALL_COMMAND make install
-        PREFIX=${CMAKE_BINARY_DIR}/ed25519cpplib
-        )
-set(COMMON_DEPENDECIES ${COMMON_DEPENDECIES};ed25519cpplib)
+#
+# Ed25519
+#
+pkg_check_modules(ed25519cpp ed25519cpp)
+if (ed25519cpp_FOUND)
 
-ExternalProject_Add(base64cpplib
-        GIT_REPOSITORY https://github.com/dnevera/base64cpp
-        CMAKE_ARGS
-        -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
-        -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-        -DBUILD_TESTING=OFF
-        INSTALL_COMMAND make install
-        PREFIX=${CMAKE_BINARY_DIR}/base64cpplib
-        )
-set(COMMON_DEPENDECIES ${COMMON_DEPENDECIES};base64cpplib)
+    include_directories(
+            ${ed25519cpp_INCLUDE_DIRS}
+    )
+    link_directories(
+            ${ed25519cpp_LIBRARY_DIRS}
+    )
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES};${ed25519cpp_LIBRARIES})
+
+else()
+    ExternalProject_Add(ed25519cpplib
+            GIT_REPOSITORY https://github.com/dnevera/ed25519cpp
+            CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            )
+    set(COMMON_DEPENDECIES ${COMMON_DEPENDECIES};ed25519cpplib)
+    set(COMMON_LIBRARIES  ${COMMON_LIBRARIES};ed25519cpp)
+endif()
+
+#
+# Base64
+#
+pkg_check_modules(base64cpp base64cpp)
+if (base64cpp_FOUND)
+
+    message(STATUS "base64cpp: ${base64cpp_LIBRARIES}, ${base64cpp_LIBRARY_DIRS} ${base64cpp_INCLUDE_DIRS}")
+    include_directories(
+            ${base64cpp_INCLUDE_DIRS}
+    )
+    link_directories(
+            ${base64cpp_LIBRARY_DIRS}
+    )
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES};${base64cpp_LIBRARIES})
+
+else()
+    ExternalProject_Add(base64cpplib
+            GIT_REPOSITORY https://github.com/dnevera/base64cpp
+            CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            )
+    set(COMMON_DEPENDECIES ${COMMON_DEPENDECIES};base64cpplib)
+    set(COMMON_LIBRARIES  ${COMMON_LIBRARIES};base64cpp)
+endif()
 
 #
 # Common
@@ -107,10 +138,12 @@ else()
             CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
             -DCMAKE_OSX_DEPLOYMENT_TARGET=${DCMAKE_OSX_DEPLOYMENT_TARGET}
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             )
     set(COMMON_DEPENDECIES ${COMMON_DEPENDECIES};dehancer_common_cpplib)
     set(COMMON_LIBRARIES  ${COMMON_LIBRARIES};dehancer_common_cpp)
 endif()
+
 
 #
 # Details

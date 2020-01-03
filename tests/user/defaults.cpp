@@ -13,9 +13,9 @@ TEST(USER, UserTest) {
 
   std::cout << std::endl;
   std::cout << "User id        : " << user->get_id() << std::endl;
-  //std::cout << "User cuiid     : " << user.get_cuid().first << " | " << user.get_cuid().second << std::endl;
+  std::cout << "User cuiid     : " << user->get_cuid().first << " | " << user->get_cuid().second << std::endl;
   std::cout << "User name      : " << user->get_name() << std::endl;
-  std::cout << "User storage_   : " << user->get_storage_dir() << std::endl;
+  std::cout << "User storage_  : " << user->get_storage_dir() << std::endl;
   std::cout << "User pref file : " << user->get_preference_path() << std::endl;
 
   auto some_data = user->get_defaults("user-key");
