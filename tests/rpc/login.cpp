@@ -6,6 +6,7 @@
 #include "dehancer/Client.h"
 #include "../dotenv/dotenv.h"
 #include "../dotenv/dotenv_utils.h"
+#include <random>
 #include "key_file.h"
 
 TEST(JSON_RPC_CONNECT, LoginTest) {
@@ -23,28 +24,45 @@ TEST(JSON_RPC_CONNECT, LoginTest) {
 
   std::cout << std::endl;
 
-  dehancer::Semaphore semaphore;
+  int count = 1;
+  dehancer::Semaphore semaphore(-(count-1));
 
-  client
-          .get_auth_token()
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> dis(100, 300);
 
-          .then([&](const dehancer::json json){
+  for (int i = 0; i < count; ++i) {
 
-            std::cout << "result: " << json.dump() << std::endl;
+    auto duration = std::chrono::milliseconds(dis(gen));
 
-            semaphore.signal();
+    client
+            .login()
 
-          })
+            .then([duration](dehancer::network::client::Rpc *rpc) {
 
-          .fail([](const dehancer::Error error){
+                std::this_thread::sleep_for(duration);
 
-            std::cerr << error << std::endl;
+                return rpc->get_auth_token();
+            })
 
-          })
+            .then([&](const dehancer::json json) {
 
-          .finally([&](){
-              semaphore.signal();
-          });
+                std::this_thread::sleep_for(duration);
+
+                std::cout << "auth result: " << json.dump() << std::endl;
+
+            })
+
+            .fail([](const dehancer::Error error) {
+
+                std::cerr << error << std::endl;
+
+            })
+
+            .finally([&]() {
+                semaphore.signal();
+            });
+  }
 
   std::cout << "waiting....: " << client.get_url() << std::endl;
 

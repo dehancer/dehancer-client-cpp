@@ -78,9 +78,6 @@ namespace dehancer::network::client {
 
                                   [this,defer](const std::shared_ptr<HttpResponse> response){
 
-
-                                    std::cout << "response: " << response->state << std::endl;
-
                                       if (response->state == HttpResponse::State::completed) {
                                         std::string data; response->write(data);
                                         auto result = json::parse(data);
@@ -164,7 +161,7 @@ namespace dehancer::network::client {
       return impl_->access_token_;
     }
 
-    promise::Defer Rpc::get_auth_token() {
+    promise::Defer Rpc::get_auth_token() const {
 
       auto digest = ed25519::Digest([this](auto &calculator){
           calculator.append(ed25519::Seed());
@@ -182,6 +179,46 @@ namespace dehancer::network::client {
       };
 
       return impl_->request("get-auth-token", params);
+
+    }
+
+    promise::Defer Rpc::get_cuid_state(const std::string &token) const {
+
+      auto digest = ed25519::Digest([this,token](auto &calculator){
+          calculator.append(token);
+          calculator.append(impl_->cuid_.first);
+      });
+
+      auto pair = ed25519::keys::Pair::FromPrivateKey(impl_->cuid_.second);
+      auto signature = pair->sign(digest);
+
+      dehancer::json params = {{"cuid", impl_->cuid_.first},{"signature", signature->encode()}};
+
+      return impl_->request("get-cuid-state", params);
+    }
+
+    promise::Defer Rpc::login() {
+      //return promise::newPromise([this](promise::Defer defer) {
+
+      auto token = impl_->user_->get_defaults("__ACCESS_TOKEN__");
+
+      if (token && !token->empty()) {
+
+        return get_cuid_state(token.value())
+
+                .then([this](const dehancer::json json){
+                    return get_auth_token();
+                });
+      }
+      else {
+
+      }
+
+      return promise::newPromise([this](promise::Defer defer) {
+          return defer.resolve(this);
+      });
+          //return defer.resolve(this);
+      //});
     }
 
     const std::string& Rpc::get_url() const { return impl_->session_.get_url(); }

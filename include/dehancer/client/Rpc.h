@@ -77,7 +77,14 @@ namespace dehancer::network::client {
          * Get client authenticate token
          * @return deferred token object
          */
-        promise::Defer get_auth_token();
+        promise::Defer get_auth_token() const;
+
+        /**
+         * Check cuid state
+         * @param token
+         * @return state
+         */
+        promise::Defer get_cuid_state(const std::string& token) const;
 
         /***
          * Send user info (optional)

@@ -20,7 +20,6 @@ namespace dehancer::platform {
 
     UserMacOs::UserMacOs(const std::string& container_id):
             User(container_id),
-            //container_id_(container_id),
             user_id_([NSUserName() UTF8String]),
             user_name_([NSFullUserName() UTF8String]),
             storage_dir_([NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true)[0] UTF8String]),
