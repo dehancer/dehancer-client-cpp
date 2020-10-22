@@ -45,7 +45,7 @@ TEST(JSON_RPC_CONNECT, LoginTest) {
                 return rpc->get_auth_token();
             })
 
-            .then([&](const dehancer::json json) {
+            .then([&](const dehancer::json& json) {
 
                 std::this_thread::sleep_for(duration);
 
@@ -53,7 +53,7 @@ TEST(JSON_RPC_CONNECT, LoginTest) {
 
             })
 
-            .fail([](const dehancer::Error error) {
+            .fail([](const dehancer::Error& error) {
 
                 std::cerr << error << std::endl;
 

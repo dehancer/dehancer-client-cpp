@@ -38,7 +38,7 @@ namespace dehancer::network {
              * @param url - url string
              * @param timeout - default request time out
              */
-            UrlSession(const std::string &url, std::time_t timeout = 60);
+            explicit UrlSession(const std::string &url, std::time_t timeout = 60);
 
             UrlSession() = delete;
             UrlSession(UrlSession&&) = delete;

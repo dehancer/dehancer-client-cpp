@@ -42,7 +42,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
             .subscribe(
 
-                    [](const std::shared_ptr<net::HttpResponse> response){
+                    [](const std::shared_ptr<net::HttpResponse>& response){
 
                         std::cout << " Response: ["<< std::this_thread::get_id() <<"]"
                                   << " state: " << response->state
@@ -66,7 +66,7 @@ TEST(JSON_RPC_CONNECT, UrlSessionTest) {
 
                     },
 
-                    [&semaphore,&session,&ref_count](std::exception_ptr ep){
+                    [&semaphore,&session,&ref_count](const std::exception_ptr& ep){
 
                         try {
                           std::rethrow_exception(ep);

@@ -7,7 +7,7 @@
 #include <string>
 
 
-TEST(RXCPP_TEST, UrlSessionTest) {
+TEST(RXCPP_TEST, rxcppproxy) {
 
 
   std::cout << std::endl;
@@ -42,7 +42,7 @@ TEST(RXCPP_TEST, UrlSessionTest) {
 
 
   auto observable = rxcpp::observable<>::create<int>(
-          [](rxcpp::subscriber<int> subscriber){
+          [](const rxcpp::subscriber<int>& subscriber){
               for(int i = 0; i<10; ++i) {
                 subscriber.on_next(i);
                 std::this_thread::sleep_for(std::chrono::milliseconds(270));

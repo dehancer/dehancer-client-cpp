@@ -138,7 +138,7 @@ namespace dehancer::network {
 
 
     struct HttpResponseFile : HttpResponse {
-        HttpResponseFile(const std::string_view &file);
+        explicit HttpResponseFile(const std::string_view &file);
 
         void append(const std::vector<std::uint8_t> &chunk) override;
 

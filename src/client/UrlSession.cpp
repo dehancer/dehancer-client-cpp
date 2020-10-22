@@ -51,7 +51,7 @@ namespace dehancer::network::client {
 
         struct Session {
 
-            ~Session() {};
+            ~Session() = default;
 
             Session(const std::string& url, std::time_t timeout):
                     url(url_encode(url)),timeout(timeout)

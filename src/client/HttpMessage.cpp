@@ -5,7 +5,7 @@
 #include "dehancer/client/HttpMessage.h"
 
 namespace dehancer::network {
-    HttpResponse::~HttpResponse() {}
+    HttpResponse::~HttpResponse() = default;
 
     void HttpResponse::write(std::string &buffer) {
       std::vector<std::uint8_t> data;
